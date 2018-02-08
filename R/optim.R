@@ -215,16 +215,6 @@ msm.optim.optimr <- function(p, gr, hessian, msmdata, qmodel, qcmodel, cmodel, h
 
     if (is.null(optim.args$control)) optim.args$control <- list()
 
-# this might cause more trouble than it solves.
-
-#       * R/optim.R: Pass fnscale to optim() automatically, if not already
-#       provided, using the likelihood at the initial values.  Wastes a
-#       likelihood calculation but should improve convergence.
-
-#    if (is.null(optim.args$control$fnscale))
-#        optim.args$control$fnscale <- lik.msm(p$inits, msmdata=msmdata, qmodel=qmodel, qcmodel=qcmodel,
-#                                              cmodel=cmodel, hmodel=hmodel, paramdata=p)
-
     optim.args <- c(optim.args, list(par=p$inits, fn=lik.msm, hessian=hessian, gr=gr,
                                      msmdata=msmdata, qmodel=qmodel, qcmodel=qcmodel,
                                      cmodel=cmodel, hmodel=hmodel, paramdata=p))
