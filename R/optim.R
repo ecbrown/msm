@@ -208,7 +208,43 @@ msm.optim.bobyqa <- function(p, gr, hessian, msmdata, qmodel, qcmodel, cmodel, h
     p
 }
 
+msm.optim.optimr <- function(p, gr, hessian, msmdata, qmodel, qcmodel, cmodel, hmodel, ...) {
+    optim.args <- list(...)
+    if (is.null(optim.args$method))
+        optim.args$method <- if (deriv.supported(msmdata, hmodel, cmodel) || (length(p$inits)==1)) "BFGS" else "Nelder-Mead"
 
+    if (is.null(optim.args$control)) optim.args$control <- list()
+
+# this might cause more trouble than it solves.
+
+#       * R/optim.R: Pass fnscale to optim() automatically, if not already
+#       provided, using the likelihood at the initial values.  Wastes a
+#       likelihood calculation but should improve convergence.
+
+#    if (is.null(optim.args$control$fnscale))
+#        optim.args$control$fnscale <- lik.msm(p$inits, msmdata=msmdata, qmodel=qmodel, qcmodel=qcmodel,
+#                                              cmodel=cmodel, hmodel=hmodel, paramdata=p)
+
+    optim.args <- c(optim.args, list(par=p$inits, fn=lik.msm, hessian=hessian, gr=gr,
+                                     msmdata=msmdata, qmodel=qmodel, qcmodel=qcmodel,
+                                     cmodel=cmodel, hmodel=hmodel, paramdata=p))
+    opt <- do.call("optimr", optim.args)
+    if (opt$convergence==1)
+        warning("Iteration limit in optim() reached without convergence. Reported estimates are not the maximum likelihood. Increase \"maxit\" or change optimisation method - see help(optim) and help(msm).")
+    else if (opt$convergence==10)
+        warning("Not converged: Nelder-Mead simplex is degenerate. Reported estimates are not the maximum likelihood.")
+    else if (opt$convergence %in% 51:52)
+        warning("Not converged: error in L-BFGS-B, see help(optim). Reported estimates are not the maximum likelihood.")
+    ctrace <- !is.null(optim.args$control$trace) && optim.args$control$trace > 0
+    if (ctrace){
+        cat("Used", opt$counts[1], "function and", opt$counts[2], "gradient evaluations\n")
+    }
+    if (!is.null(opt$message)) warning("optim() returned a message: ",opt$message)
+    p$lik <- opt$value
+    p$params[p$optpars] <- opt$par
+    p$opt <- opt
+    p
+}
 
 
 ### Test analytic against numeric derivatives
